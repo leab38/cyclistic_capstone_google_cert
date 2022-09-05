@@ -1,0 +1,261 @@
+---
+title: "Cyclistic Capstone"
+author: "leab38"
+date: "2022-09-05"
+output: html_document
+---
+
+```{r, setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Cyclistic Data Analysis Capstone Project
+
+This is the capstone data analysis for the Cyclistic project as part of the [Google Data Analytics Professional Certificate on Coursera](https://www.coursera.org/professional-certificates/google-data-analytics).
+
+```{r, load packages, message = FALSE, warning = FALSE}
+library(tidyverse)
+library(lubridate)
+library(scales)
+```
+
+## Ask
+
+The Ask stage is designed to understand what questions are we trying to answer with the data. According to the project as defined by the case study, the following questions will guide the future marketing program:
+1. How do annual members and casual riders use Cyclistic bikes differently?
+2. Why would casual riders buy Cyclistic annual memberships?
+3. How can Cyclistic use digital media to influence casual riders to become members? 
+
+This data analysis is expected to answer the first question only. "How do annual members and casual riders use Cyclistic bikes differently?"
+
+## Prepare
+
+The Prepare stage focuses on the data to be used. We need to understand where the data is located, how it is organized, if there are any issues with the data. In this case study, the data has been [provided](https://divvy-tripdata.s3.amazonaws.com/index.html) by the "Cyclistic" organization.
+
+###Download / store data
+#### Create file name function
+In previous years, the data was provided on a quarterly basis. However, for 2021-2022, to gather the last 12 months of data, 12 zip files with 12 csv files must be downloaded. In order to simplify the import of 12 csv files worth of data, I created a function to build the filename, so that I can iterate on the files to import them to R. 
+
+To repeat this in your own environment, make sure to update "filefolder" to be the file location where the unzipped folders are stored.
+
+```{r, create_filename function, message = FALSE, warning = FALSE}
+# Function to create the file name once we know the date (yyyymm)
+create_filename <- function(date) {
+  filefolder='C:/Users/leab3/Documents/Certificates/Google/'
+  foldername=paste(date,"-divvy-tripdata",sep = "")
+  filename=paste(foldername,".csv",sep = "")
+  filelocation=paste(filefolder,foldername,"/",filename,sep="")
+  return(filelocation)
+}
+
+```
+#### Iterate to import files
+Using a for loop with a start point (mine was August 2021), iterate over 12 files to import into R.
+
+```{r, file import iteration, message = FALSE, warning = FALSE}
+# Initialize year/month for starting file
+year=2021
+month=08
+
+# Iterate over files - remember they need to be unzipped
+
+for (i in 1:12) {
+  if (month < 10) {
+    month = paste('0',month,sep = '')
+  }
+  date=paste(year,month,sep="")
+  if (i==1) {
+    df_name <- list(paste0('cycle_data_',month))
+    assign(paste0('cycle_data_',month),read_csv(create_filename(date)))
+    } else {
+      df_name<-append(df_name,paste0('cycle_data_',month))
+      assign(paste0('cycle_data_',month),read_csv(create_filename(date)))
+      }
+  
+  # Adjust month/year, based on December/not-December
+  month=as.integer(month)
+  month
+  if (month==12) {
+    year = year + 1
+    month = 1
+  } else {
+    month = month+1
+  }
+}
+print("File import complete!")
+```
+
+#### Identify how the data is organized part I
+Another step of the Prepare phase is to identify how the data is organized. To do this, we look at the structure of the data. Since we have 12 files that need to be merged, the first thing I want to look at is the column names and compare to see if we have any differences between them. We got lucky on this one.. the files have all the same columns with the same names that means we can easily merge the data frames into a single data frame.
+
+```{r, print column names}
+# Print column names for all existing data frames
+for (name in df_name){
+  print(colnames(eval(parse(text=name))))
+}
+
+```
+
+#### Merge the data frames
+
+```{r, merge data frames}
+# Merge data frames into single data frame
+i=1
+for (name in df_name){
+  if (i==1){
+    all_trips<-eval(parse(text=name))
+  } else {
+    all_trips<-bind_rows(all_trips,eval(parse(text=name)))
+  }
+  i=i+1
+}
+```
+
+#### Identify how the data is organized part II
+Since I was starting with 12 separate data frames, I prioritized getting those data frames into one. Now we can do some more identifying. For this we're going to look at the structure and a summary of the columns to understand how the data frame is structured. The "str" function also lets us verify the data types assigned to each column, which will be useful later on in the analysis. I will also do a quick first look at total counts for members versus casual riders.
+
+```{r, data organization}
+# Verify basic information for all_trips
+str(all_trips)
+summary(all_trips)
+colnames(all_trips)
+
+# Look at values/counts for member_casual/rideable_type
+all_trips %>%
+  count(member_casual, rideable_type)
+```
+
+### Process
+The Process phase is when we choose our tools, verify the data's integrity, ensure the data is clean and ready to analyze. To start off, I will create some calculated fields that will help later on in the analysis.
+
+#### Calculated Fields
+So, when looking at the data at the beginning, I knew I wanted to be able to group on things like day of the week and month, as well as gather information on the duration of the rides being taken. To do this, I needed to create new columns with calculated fields, which took information from existing columns to make this information easier to filter.
+
+```{r, calculated fields}
+# Create calculated field for day, month, year, day of the week
+all_trips$date <- as.Date(all_trips$started_at)
+all_trips$month <- format(as.Date(all_trips$date),"%m")
+all_trips$day <- format(as.Date(all_trips$date),"%d")
+all_trips$year <- format(as.Date(all_trips$date),"%y")
+all_trips$day_of_week<-format(as.Date(all_trips$date),"%A")
+
+# Create calculated field for length of ride in seconds
+all_trips$ride_length<-difftime(all_trips$ended_at,all_trips$started_at)
+
+# Convert "ride_length" from factor to numeric
+all_trips$ride_length <- as.numeric(as.character(all_trips$ride_length))
+is.numeric(all_trips$ride_length)
+```
+
+#### Identify how the data is organized part III
+Now that there are more columns, I need to re-verify the structure and take a glance at the aggregate function summary. 
+
+```{r, structure II}
+# Verify structure
+str(all_trips)
+
+# Descriptive analysis of ride length
+summary(all_trips$ride_length)
+```
+
+#### Cleaning up the data
+Now that is interesting, I see that the "ride_length" column I created has a negative value for its minimum. That means some rides have a start time that is after the end time. I want to count these and see what we're dealing with. I have a lot of lines of data, so if the impact would be minimal to the dataset, I'll go ahead and remove these rows.
+
+```{r, count trips with negative ride_lengths}
+# Count the number of trips with negative ride_lengths
+all_trips %>%
+  count(ride_length<0)
+```
+
+Aha great! So that's not many compared to the full size of the dataset, so I'm going to go ahead and remove these. If this were a company dataset, I would definitely want to dig in a bit to understand how this happened. Based on the case study details, I think these might be related to bikes being taken out of circulation for quality control.
+
+```{r, remove trips with negative ride length}
+# Create secondary data frame removing ride_length<0
+all_trips_v2 <- all_trips[!(all_trips$ride_length<0),]
+```
+
+### Analyze
+Now that the data is stored, merged, and cleaned, we are moving on to the Analyze phase. This includes organizing the data (this one is definitely an iterative process!), formatting the data, and identifying trends, relationships, or even, if we're lucky, surprises in the data. My first comparison is an aggregate one. This will compare the mean, median, max, and min ride lengths by whether the person using the bike was a member or a casual user.
+
+```{r, aggregate comparison}
+# Compare members and casual users
+aggregate(all_trips_v2$ride_length ~ all_trips_v2$member_casual
+          ,FUN=mean)
+aggregate(all_trips_v2$ride_length ~ all_trips_v2$member_casual
+          ,FUN=median)
+aggregate(all_trips_v2$ride_length ~ all_trips_v2$member_casual
+          ,FUN=max)
+aggregate(all_trips_v2$ride_length ~ all_trips_v2$member_casual
+          ,FUN=min)
+```
+
+#### Trend watch!
+So one trend we notice here is that the casual users of the bikes are going for much longer rides. 
+
+Another thing we can look at is how long are the rides by the day of the week.
+
+```{r, aggregate ride length by member type and day of week}
+# See the average ride time by each day for members vs casual users
+aggregate(all_trips_v2$ride_length ~ all_trips_v2$member_casual + all_trips_v2$day_of_week, FUN = mean)
+```
+
+I see the days are out of order. Let's fix that!
+
+```{r, fix day order}
+# Order days of the week
+all_trips_v2$day_of_week <- ordered(all_trips_v2$day_of_week, levels=c("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"))
+
+# Compare weekday/membership type
+all_trips_v2 %>%
+  mutate(weekday = wday(started_at,label=TRUE)) %>%
+  group_by(member_casual,weekday) %>%
+  summarize(number_of_rides=n(),average_duration=mean(ride_length)) %>%
+  arrange(member_casual, weekday)
+```
+
+Looking at this, we can see that casual riders ride most on Saturday and Sunday (not too surprising) and they ride longer distances, which we saw before. Members ride most Tuesday through Thursday and only take mildly longer rides on the weekend, if they are going on the weekends. I also think it's interesting to see that the change in how many rides users take per day does not change much for members, but really changes for casual members depending on the day of the week.
+
+### Share
+In the Share phase, we create effective visualizations and find the best way to share our findings. I have a couple of ggplots to show you below and then there will be a brief conclusion of what I learned during this data analysis project.
+
+#### Weekday ridership plot
+The first plot is a comparison of member/casual riders number of riders by the day of the week.
+
+```{r, weekday ridership plot}
+# Visualize weekday ridership with ggplot
+all_trips_v2 %>%
+  mutate(weekday = wday(started_at,label=TRUE)) %>%
+  group_by(member_casual,weekday) %>%
+  summarize(number_of_rides=n(),average_duration=mean(ride_length)) %>%
+  arrange(member_casual, weekday) %>%
+  ggplot(aes(x=weekday,y=number_of_rides,fill=member_casual)) + geom_col(position="dodge")
+```
+
+#### Weekday length of ride comparison
+My second plot compares the length of the rides by the day of the week and membership type.
+
+```{r, montly ridership plot}
+# Visualize ride length
+all_trips_v2 %>%
+  mutate(weekday = wday(started_at,label=TRUE)) %>%
+  group_by(member_casual,weekday) %>%
+  summarize(number_of_rides=n(),average_duration=mean(ride_length)) %>%
+  arrange(member_casual, weekday) %>%
+  ggplot(aes(x=weekday,y=average_duration,fill=member_casual)) + geom_col(position="dodge")
+```
+
+#### Monthly ridership comparison
+My third visualization compares the number of riders by membership type riding every month.
+
+```{r, monthly ridership plot}
+# Visualize monthly ridership with ggplot dodge
+all_trips_v2 %>%
+  mutate(ride_month = month(started_at,label=TRUE)) %>%
+  group_by(member_casual,ride_month) %>%
+  summarize(number_of_rides=n(),average_duration=mean(ride_length)) %>%
+  arrange(member_casual, ride_month) %>%
+  ggplot(aes(x=ride_month,y=number_of_rides,fill=member_casual)) + geom_col(position="dodge") +
+  scale_y_continuous(labels=comma)
+```
+
+
