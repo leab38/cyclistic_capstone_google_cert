@@ -2,7 +2,9 @@
 title: "Cyclistic Capstone"
 author: "leab38"
 date: "2022-09-05"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r, setup, include=FALSE}
@@ -17,6 +19,7 @@ This is the capstone data analysis for the Cyclistic project as part of the [Goo
 library(tidyverse)
 library(lubridate)
 library(scales)
+library(tinytex)
 ```
 ## Executive Summary
 
@@ -57,11 +60,15 @@ The Prepare stage focuses on the data to be used. We need to understand where th
 In previous years, the data was provided on a quarterly basis. However, for 2021-2022, to gather the last 12 months of data, 12 zip files with 12 csv files must be downloaded. In order to simplify the import of 12 csv files worth of data, I created a function to build the filename, so that I can iterate on the files to import them to R. 
 
 To repeat this in your own environment, make sure to update "filefolder" to be the file location where the unzipped folders are stored. The zip files must be unzipped (on Windows) before the below will run successfully.
+```{r, hidden file location,include=FALSE}
+folder='C:/Users/leab3/Documents/Certificates/Google/'
+```
 
 ```{r, create_filename function, message = FALSE, warning = FALSE}
 # Function to create the file name once we know the date (yyyymm)
 create_filename <- function(date) {
-  filefolder='C:/Users/leab3/Documents/Certificates/Google/'
+  #folder variable located in hidden chunk
+  filefolder=folder
   foldername=paste(date,"-divvy-tripdata",sep = "")
   filename=paste(foldername,".csv",sep = "")
   filelocation=paste(filefolder,foldername,"/",filename,sep="")
@@ -259,7 +266,7 @@ all_trips_v2 %>%
 ### Weekday length of ride comparison
 My second plot compares the length of the rides by the day of the week and membership type.
 
-```{r, montly ridership plot}
+```{r, monthly ridership plot}
 # Visualize ride length
 all_trips_v2 %>%
   mutate(weekday = wday(started_at,label=TRUE)) %>%
@@ -272,7 +279,7 @@ all_trips_v2 %>%
 ### Monthly ridership comparison
 My third visualization compares the number of riders by membership type riding every month.
 
-```{r, monthly ridership plot}
+```{r, monthly ridership plot dodge}
 # Visualize monthly ridership with ggplot dodge
 all_trips_v2 %>%
   mutate(ride_month = month(started_at,label=TRUE)) %>%

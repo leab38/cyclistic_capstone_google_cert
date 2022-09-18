@@ -377,7 +377,8 @@ of the <a href="https://www.coursera.org/professional-certificates/google-data-a
 Data Analytics Professional Certificate on Coursera</a>.</p>
 <pre class="r"><code>library(tidyverse)
 library(lubridate)
-library(scales)</code></pre>
+library(scales)
+library(tinytex)</code></pre>
 <div id="executive-summary" class="section level2">
 <h2>Executive Summary</h2>
 <p>The structure of this report will follow the 6-stage data analysis
@@ -431,7 +432,8 @@ stored. The zip files must be unzipped (on Windows) before the below
 will run successfully.</p>
 <pre class="r"><code># Function to create the file name once we know the date (yyyymm)
 create_filename &lt;- function(date) {
-  filefolder=&#39;C:/Users/leab3/Documents/Certificates/Google/&#39;
+  #folder variable located in hidden chunk
+  filefolder=folder
   foldername=paste(date,&quot;-divvy-tripdata&quot;,sep = &quot;&quot;)
   filename=paste(foldername,&quot;.csv&quot;,sep = &quot;&quot;)
   filelocation=paste(filefolder,foldername,&quot;/&quot;,filename,sep=&quot;&quot;)
