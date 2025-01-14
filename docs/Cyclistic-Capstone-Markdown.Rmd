@@ -3,8 +3,8 @@ title: "Cyclistic Capstone"
 author: "leab38"
 date: "2022-09-05"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 ---
 
 ```{r, setup, include=FALSE}
@@ -14,6 +14,8 @@ knitr::opts_chunk$set(echo = TRUE)
 # Cyclistic Data Analysis Capstone Project
 
 This is the capstone data analysis for the Cyclistic project as part of the [Google Data Analytics Professional Certificate on Coursera](https://www.coursera.org/professional-certificates/google-data-analytics).
+
+[Portfolio Site](https://leab38.github.io/)
 
 ```{r, load packages, message = FALSE, warning = FALSE}
 library(tidyverse)
@@ -323,3 +325,5 @@ Recommendations:
 2. Consider offering a member package for summer user only, for example May - September.
 
 If you would like to check out my notebook and run it for yourself, you can find it on GitHub [here](https://github.com/leab38/cyclistic_capstone_google_cert).
+
+[Back to Portfolio](https://leab38.github.io/)
